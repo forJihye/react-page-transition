@@ -5,6 +5,19 @@ import Main from './components/main';
 import Post from './components/post';
 import { TransitionContext, TransitionProvider } from './utils/transition';
 
+const Hidden = ({children}) => {
+  return <div style={{
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    overflow: 'hidden'
+  }}>
+    {children}
+  </div>
+}
+
 const Page = () => <>
   <Route exact path='/' render={_=> <Main />} />
   <Route exact path='/post' render={_=> <Post />} />
@@ -34,16 +47,16 @@ const BrowserRouterComp = ({children}) => {
 }
 
 function App() {
-  const [loading, setLoading] = useState(false);
+  const [isRender, setIsRender] = useState(false);
   useEffect(() => {
-    setLoading(true)
+    setTimeout(() => setIsRender(true));
   }, []);
   return <TransitionProvider>
     <MemoryRouter>
       <BrowserRouterComp>
-        {loading && <Page />}
+        {isRender && <Page />}
       </BrowserRouterComp>
-      {loading && <Page />}
+      {isRender && <Hidden><Page /></Hidden>}
     </MemoryRouter>
   </TransitionProvider>
 }
