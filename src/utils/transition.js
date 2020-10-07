@@ -1,4 +1,5 @@
 import React, { createContext, useState } from 'react';
+import { tween , styler } from 'popmotion';
 import { sleep } from '.';
 
 export const TransitionContext = createContext();
@@ -15,23 +16,55 @@ export const TransitionProvider = ({...props}) => {
   return <Provider value={{state, setState: (state) => setState(prevState => Object.assign(prevState, state))}} {...props} />
 }
 
-const pushNextPage = (to, seed, state) => {
-  const {history: {browser, memory}, targets} = state;
+const pushNextPage = (to, state, seed) => {
+  const {history: {browser, memory}} = state;
   return async() => {
     if(lock) return;
     lock = true;
     memory.push(to);
     await Promise.all([...state.preload].map(el => checkTagPreload(el)));
+    await setTransition(to, state, seed);
+    state.preload.clear();
     browser.push(to);
-    targets.preload.clear();
     lock = false;
   }
+}
+
+const setTransition = async(to, state, seed) => {
+  if(seed === 'pushPage'){
+    await gotoFadeInOutPage(to, state)
+  }
+}
+
+const gotoFadeInOutPage = async(to, state) => {
+  const {targets} = state;
+  let current = null;
+  let next = null;
+  switch(to){
+    case '/': 
+      next = targets.main.memory;
+      current = targets.image.browser;
+    break;
+    case '/image':
+      next = targets.image.memory;
+      current = targets.main.browser;
+    break
+  }
+  fixed.append(next);
+  tween({duration: 1000}).start(v => {
+    styler(current).set('opacity', 1-v);
+    styler(next).set('opacity', v)
+  });
+  fixed.show();
+  await sleep(1000);
+  fixed.remove(next);
+  fixed.hide();
 }
 
 let lock = false;
 export const Link = ({to, seed, ...props}) => {
   return <Consumer>
-    {({state}) => <a onClick={pushNextPage(to, seed, state)} {...props} style={{color:'blue',cursor:'pointer'}} />}
+    {({state}) => <a onClick={pushNextPage(to, state, seed)} {...props} style={{color:'blue',cursor:'pointer'}} />}
   </Consumer>
 }
 

@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import './App.css';
 import { BrowserRouter, MemoryRouter, Route, useHistory } from 'react-router-dom';
 import Main from './components/main';
-import Post from './components/post';
+import Image from './components/image';
 import { TransitionContext, TransitionProvider } from './utils/transition';
 
 const Hidden = ({children}) => {
@@ -20,7 +20,7 @@ const Hidden = ({children}) => {
 
 const Page = () => <>
   <Route exact path='/' render={_=> <Main />} />
-  <Route exact path='/post' render={_=> <Post />} />
+  <Route exact path='/image' render={_=> <Image />} />
 </>
 
 const HistoryObserver = ({memoryHistory, children}) => {

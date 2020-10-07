@@ -4,13 +4,12 @@ import { TransitionContext } from './transition';
 
 const refCached = f => {
   const store = new Map();
-  // console.log('ref store', store);
   return property => store.has(property) ? store.get(property) : store.set(property, f(property)).get(property)
 }
 
 const groupStore = new Map;
 const RefCreate = refCached((tagName) => {
-  const Make = ({to, name, group, preload, children, ...props}) => {
+  const Make = ({to, name, group, preload, seed, children, ...props}) => {
     const el = useRef(null);
     const history = useHistory();
     const {state, setState} = useContext(TransitionContext);

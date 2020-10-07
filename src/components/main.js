@@ -5,7 +5,8 @@ import { Ref } from '../utils/refComp';
 const Main = () => {
   return <Ref.main name="main">
     main page
-    <Link to="/post">goto post</Link>
+    <Link to="/image" seed='pushPage'>goto post</Link>
+
     {groupRefMap([1,2,3], (item, i, group) => 
       <Ref.div to="/post" key={i} {...group('inner')}>
         <Ref.h5 {...group('title')}>title {item}</Ref.h5>
