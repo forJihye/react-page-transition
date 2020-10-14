@@ -374,7 +374,7 @@ const Link = ({to, children, className}) => {
       lock = true;
       memory.push(to);
       await sleep(0);
-      await gotoTransitionPage({to, state, seed}); // seed는 애니메이션의 대상자와 효과를 구분하기 위한
+      await gotoTransitionPage({to, state, seed}); // seed는 애니메이션의 대상자와 효과를 구분하기 위한 프로퍼티
       browser.push(to);
       lock = false;
     }
@@ -383,16 +383,16 @@ const Link = ({to, children, className}) => {
 }
 const gotoTransitionPage = async({to, state}) => {
   const {targets} = state;
-  let currente;
+  let current;
   let next;
   switch(to){
     case '/': 
       next = targets.post.memory;
-      currente = targets.main.browser;
+      current = targets.main.browser;
     break;
     case '/post': 
       next = targets.main.memory;
-      currente = targets.post.browser;
+      current = targets.post.browser;
     break;
   }
   fixed.append(next);
@@ -406,19 +406,16 @@ const gotoTransitionPage = async({to, state}) => {
   fixed.hide();
 }
 ```
-여기서 주의할 점은 `Ref` 컴포넌트의 해당 `ref` 값을 생명주기 `useEffect`내에서 `context` 상태값에 저장하고 있다. `useEffect`는 `jsx`가 렌더링이 끝난 후 수행된다. (비동기)   
-`memory.push(to)`링크 이동 후 이동 된 페이지의 `Ref`컴포넌트의 `ref`엘리먼트 값이 `state.targets`에 렌더링이 끝난 후 저장되기 때문에 처음에 콘솔로 `state.targets`를 찍어보면 `undefined`로 저장된다.  
+여기서 주의할 점은 `RefCompFactory`컴포넌트의 해당 `ref`값을 생명주기 `useEffect`내에서 `context`상태값에 저장하고 있다. `useEffect`는 `jsx`가 렌더링이 끝난 후 수행된다. (비동기)   
+`memory.push(to)`링크 이동 후 이동 된 페이지의 `Ref`컴포넌트의 `ref`엘리먼트 값이 `state.targets`에 렌더링이 끝난 후 저장되기 때문에 처음에 콘솔로 `state.targets`를 찍어보면 렌더링이 되지 않은 컴포넌트의 `ref`는 `undefined`로 저장된다.  
 비동기 `sleep` 함수를 이용하여 `push()`후 `useEffect()`가 먼저 수행하고 나서 `state.targets`에 해당 `ref 엘리먼트`얻어 올 수 있다.   
 
-또 하나의 문제점은 `main -> post`,  `post -> main`으로 페이지 이동 될 때 아래와 같은 에러가 발생한다.  
+또 하나의 문제점은 `main -> post`, `post -> main`으로 페이지 이동 될 때 아래와 같은 에러가 발생한다.  
 그 이유는 React가 렌더링 한 DOM 노드가 (다른 라이브러리)에 의해 제거되면 React는 변경 사항을 알 수 없으므로 React가 생성한 DOM 부분을 조작하지 않아야 한다.    
-예를 들어 제거한 DOM 노드를 React 컴포넌트가 다시 렌더링할 때 에러가 발행 할 수 있다.   
-```Uncaught DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. [react-dom.development.js:7601]```
-[내용 참고](https://stackoverrun.com/ko/q/12098469)
-
-현재 React `Ref` 컴포넌트로 DOM을 렌더링하여 해당 `ref 엘리먼트`를 받아 `fixed`자바스크립트 네이티브 함수를 통해 강제로 다른 엘리먼트에 `appendChild, removeChild`를 하고 있다.  
-`ref 엘리먼트`있던 `root자리`에 없어서 다시 렌더링 될 때 에러가 발생하는 것이다.
-이 에러를 해결하기 위해 `Ref`를 사용하여 렌더링하고 있는 컴포넌트를 jsx `<div>`로 한번 더 감싸주면 해결된다.
+만약 제거한 DOM 노드를 React 컴포넌트가 다시 렌더링할 때 에러가 발행 할 수 있다.   
+```
+Uncaught DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. [react-dom.development.js:7601]```
+[에러내용 참고](https://stackoverrun.com/ko/q/12098469)
 
 ```jsx
 const PageRoute = ({component, ...props}) => {
@@ -429,24 +426,24 @@ const Pages = () => <>
   <PageRoute exact path='/post' component={<Post />} />
 </>
 ```
+위 코드에서 `RefCompFactory`컴포넌트로 jsx을 렌더링하여 해당 엘리먼트를 `fixed`자바스크립트 네이티브 함수를 통해 강제로 다른 엘리먼트에 `appendChild, removeChild`를 하고 있다. ` 엘리먼트`있던 `root자리`에 없어서 다시 렌더링 될 때 에러가 발생하는 것이다. 이 에러를 해결하기 위해 `RefCompFactory`를 사용하여 렌더링하고 있는 컴포넌트를 jsx `<div>`로 한번 더 감싸주면 해결된다.
+
 -----
 
-### `5. image, video loading`
-렌더링 될 때 로딩 시간이 걸리는 이미지, 비디오 등 엘리먼트가 다음 페이지 내애 있다고 가정하면 페이지가 전환될 때 페이드 애니메이션은 작동 하겠지만 애니메이션과 별개로 이미지나 비디오는 로딩이 끝난 후 렌더링 되기 때문에 뚝 끊기는 현상이 나타날 것이다.
+### `5. image, video loading check`
+렌더링 될 때 로딩 시간이 걸리는 이미지, 비디오 등 엘리먼트가 다음 페이지 내애 있다고 가정하면 페이지가 전환될 때 페이드 애니메이션은 작동하겠지만 애니메이션과 별개로 이미지나 비디오는 로딩이 끝난 후 렌더링 되기 때문에 뚝 끊기는 현상이 나타날 것이다.
 
-이러한 현상을 보완하기 위해 이미지와 비디오 등 로딩이 필요한 엘리먼트가 로딩이 되었을 때 다음 페이지로 전환해주면 이미 로딩이 끝났기 때문에 렌더링만 해주면 로딩시간을 필요가 없어 뚝 끊기는 현상이 없어진다.   
+이러한 현상을 보완하기 위해 이미지와 비디오 등 로딩이 필요한 엘리먼트가 로딩이 되었을 때 다음 페이지로 전환해주면 이미 로딩이 끝났기 때문에 렌더링만 해주면 로딩시간이 필요가 없어 뚝 끊기는 현상이 없어진다.   
 
-여러가지 방법이 있다.  
-**`gotoTransitionPage` 함수 스코프 내에서 할 수 있는 방법**   
-이미지와 비디오를 `Ref` 컴포넌트로 엘리먼트를 만들어서 `context.refs`에서 다음 페이지에 있는 이미지와 비디오 엘리먼트를 얻어와 로딩이 다 되었을 때 애니메이션이 수행되는 방법   
+로딩 체크하는 여러가지 방법이 있다.  
+**1. `gotoTransitionPage` 함수 스코프 내에서 할 수 있는 방법**   
+이미지와 비디오를 `RefCompFactory`컴포넌트로 엘리먼트를 만들어서 메모리라우터로 이동된 다음 페이지에 이미지와 비디오 엘리먼트를 얻어와 로딩이 다 되었을 때 애니메이션이 수행되는 방법   
 
-**`Link onClick` 함수 스코프 내에서 할 수 있는 방법**  
-1번 방법으로 하게되면 `<Ref.img>` 사용 시 `props name` 값을 필수로 지정해 줘야하고,
-이미지가 한개 이상 일 때, 다른 트리 구조에 있는 이미지 일 때 `ref 엘리먼트`를 얻어오는데 어려움이 있다.   
-엘리먼트를 알 수 있고 만들어지는 `RefCompFactory` 컴포넌트에서 이미지/비디오 엘리먼트가 생성되면 로딩 확인이 필요한 엘리먼트들을 `Set` 객체에 저장하여 
-`Link`컴포넌트 `onClick` 함수 스코프내에서 `Set`객체에 있는 엘리먼트들의 로딩 완료를 먼저 확인 후 트렌지션 애니메이션 함수를 실행한다.  
+**2. `Link onClick` 함수 스코프 내에서 할 수 있는 방법**  
+엘리먼트를 알 수 있고 만들어지는 `RefCompFactory`컴포넌트 `useEffect`에서 이미지/비디오 엘리먼트가 생성되면 로딩 확인이 필요한 엘리먼트들을 `Set`객체에 저장하여 
+`Link`컴포넌트 `onClick`함수 스코프내에서 `Set`객체에 있는 엘리먼트들의 로딩 완료를 먼저 확인 후 트렌지션 애니메이션 함수를 실행한다.  
 
-먼저 로딩이 필요한 엘리먼트들의 집합 `Set`을 `context`에 생성해야 `Link`컴포넌트에서 상태를 공유받을 수 있다.
+1번 방법으로 하게되면 `<Ref.img>`사용 시 `props name` 값을 필수로 지정해 줘야하고, 이미지가 한개 이상 일 때나 다른 트리 구조에 있는 이미지 일 때 이미지와 비디오 엘리먼트를 얻어오는데 어려움이 있다. 먼저 로딩이 필요한 엘리먼트들의 집합 `Set`을 `context`에 생성해야 `Link`컴포넌트에서 상태를 공유받을 수 있다.
 ```jsx
 const TransitionProvider = ({...props}) => {
   const [state, setState] = useState({
@@ -459,8 +456,7 @@ const TransitionProvider = ({...props}) => {
   })
 }
 ```
-
-또, 로딩 완료 상태 확인이 필요한 이미지와 그렇지 않은 이미지가 있을 수도 있으니 구분하기 위해 `Ref` 컴포넌트에 프로퍼티`preload`를 추가하여 `Set`에 저장한다. 그리고 `name`이 적용되어있는 엘리먼트만 `refs`에 저장되도록 `if`문을 수정한다.
+또, 로딩 완료 상태 확인이 필요한 이미지와 그렇지 않은 이미지가 있을 수도 있으니 구분하기 위해 `RefCompFactory`컴포넌트에 프로퍼티 `preload`를 추가하여 `Set`에 저장한다. 그리고 프로퍼티 `preload`가 적용되어있는 엘리먼트만 `Set`에 저장되도록 한다.
 ```jsx
 const RefCompFactory = pCached(tagName => {
   return ({name, preload, children, ...props}) => {
@@ -476,20 +472,29 @@ const RefCompFactory = pCached(tagName => {
   }
 });
 ```
-
-이제 로딩완료 확인이 필요한 이미지들이 `context Set`에 저장되어있다. 저장 되어있는 이미지 엘리먼트들의 로딩 확인이 필요한 비동기 함수를 만든다.   
+이제 로딩완료 확인이 필요한 이미지들이 `state.preload`에 저장되어있다. 저장 되어있는 이미지 엘리먼트들의 로딩 확인이 필요한 비동기 함수를 만든다.   
 ```js
+// 이미지 onload, onerror는 최초 한 번만 실행 되기 때문에, 이미 로딩이 끝난 이미지를 onload로 체크하지 못한다.
+// 로딩확인이 끝난 이미지 complete 속성이 true로 바뀌는데, true인 이미지는 바로 완료처리를 해줘야한다.
 const checkPreload = async(el) => {
-  swtich(el.tagName){
-  case 'IMG': return new Promise(res => img.complete ? res() : img.onload = () => res());
+  switch(el.tagName){
+    case 'IMG': return new Promise(res => el.complete ? res() : el.onload = () => res());
+    case 'VIDEO': return new Promise(res => {
+      el.muted = true;
+      const play = el.play();
+      play && play.then(() => {
+        el.pause();
+        el.currentTime = 0;
+      })
+      el.oncanplay = res();
+      el.onerror = res();
+    });
   }
-  // 이미지 onload, onerror는 최초 한 번만 실행 되기 때문에, 이미 로딩이 끝난 이미지를 onload로 체크하지 못한다.
-  // 로딩확인이 끝난 이미지 complete 속성이 true로 바뀌는데, true인 이미지는 바로 완료처리를 해줘야한다.
 }
 ```
 
-`Link` 컴포넌트에서 `context Set` 저장 되어있는 이미지들이 로딩이 끝난 후 트렌지션 애니메이션 함수가 수행되어야야한다.    
-`메모리라우터`의 있는 `ref 엘리먼트`를 가져오기 위해 `(memory.push(to))`메모리라우터 링크가 이동되는 로직이 `checkPreload` 함수보다 먼저 실행되어야 `Set`에 저장되어있는 이미지 데이터를 배열로 분해하여 사용할 수 있다.
+`Link`컴포넌트에서 이미지, 비디오 로딩이 끝난 후 트렌지션 애니메이션 함수가 수행되어야야한다.    
+메모리 라우터에 있는 엘리먼트를 가져오기 위해 `(memory.push(to))`메모리라우터 링크가 이동되는 로직이 `checkPreload` 함수보다 먼저 실행되어야 `Set`에 저장되어있는 이미지 데이터를 배열로 분해하여 사용할 수 있다.
 ```jsx
 const Link = ({to, children, className}) => {
   return <PageTransitionConsumer>{({state}) => {
@@ -510,21 +515,21 @@ const Link = ({to, children, className}) => {
 ```
 -----
 
-### 6. 특정 대상자 엘리먼트 저장하기
+### 6. 특정 대상자 엘리먼트 저장하여 애니메이션 적용
 현재 `Ref`컴포넌트로 만든 엘리먼트를 저장하여 `Link`클릭 후 페이지 간의 트렌지션 애니메이션 효과를 적용했다.   
-하지만 예를 들어 블로그 포스트 그리드가 있다 가졍하면, 사용자가 클릭한 포스트의 각각 자식 엘리먼트에게 애니메이션을 적용하고 싶을 때, 내가 클릭한 포스트 한개의 `target element`와 그 안에 `children element`들을 알아야한다.   
+하지만 예를들어 블로그 리스트가 있다고 가정하면, 사용자가 클릭한 포스트의 각각 자식 엘리먼트에게 애니메이션을 적용하고 싶을 때, 내가 클릭한 한개의 포스터 `wrapper element`와 그 안에 `children element`들을 알아야한다.   
 
-먼저 블로그 포스트들을 한 그룹으로 묶기 위해서 `Ref` 컴포넌트의 프로퍼티의 `group`을 추가하여 `그룹이름`과, 클릭 시 포스트 그룹들 중 해당 `index`값으로 가져오기 위해 `index`를 추가한다.
+먼저 블로그 포스트들을 한 그룹으로 묶기 위해서 `RefCompFactory`컴포넌트 프로퍼티`group`을 추가하여 `그룹이름`과, 클릭 시 포스트 그룹들 중 해당 `index`값으로 가져오기 위해 `index`를 추가한다.
 ```jsx
 blogPosts.map((post, i) => (
   <Ref.div name="wrap" group={['blog', i]}>
     <Ref.img name="img" group={['blog', i]} src="https://picsum.photos/300/200?1" preload={true} />
     <Ref.h1 name="title" group={['blog', i]}>타이틀</Ref.h1>
-    <Ref.p name="content" group={['blog', i]}>본문내용 간략히</Ref.p>
+    <Ref.p name="content" group={['blog', i]}>본문내용</Ref.p>
   </Ref.div>
 ))
 ```
-`blogPosts`배열에 데이터 길이가 5개가 있다면, 그룹 `blog` 라는 곳에 5개의 각각 `element`들이 저장되어야한다.
+
 ```
 {
   blog: [
@@ -547,14 +552,14 @@ blogPosts.map((post, i) => (
   ]
 }
 ```
-이런 구조로 저장이 되어야 클릭 시 해당 포스트 `index`값과 `blog`그룹의 `index`값으로 해당 엘리먼트들을 가져올 수가 있다.   
+`blogPosts`배열에 데이터 길이가 5개가 있다면, 그룹`blog`라는 곳에 5개의 각각 `element`들이 저장되어야하고, 위 구조로 저장이 되어야 클릭 시 해당 포스트 `index`값과 `blog`그룹의 `index`값을 대조하여 해당 엘리먼트들을 가져올 수가 있다.   
 중복된 값이 들어가지 않고, `키-값` 쌍으로 저장하여 해당 `키`값으로 반환할 수 있는 `new Map`으로 그룹을 만든다.   
-`RefCompFactory` 함수 전역으로 `const groupStore = new Map()`을 선언하고, `group`프로퍼티도 추가하여 지정한 `group`데이터를 받아온다.
+`RefCompFactory`함수 전역으로 `const groupStore = new Map()`을 선언하고, `group`프로퍼티도 추가하여 지정한 `group`데이터를 받아온다.
 
 ```js
 const groupStore = new Map();
 const RefCompFactory = pCached(tagName => {
-  return ({name, group, children, ...props}) => {
+  return ({name, group, preload, children, ...props}) => {
     useEffect(() => {
       if(!el) return;
       const {targets} = state;
@@ -565,46 +570,61 @@ const RefCompFactory = pCached(tagName => {
         const groupMap = !groupStore.has(groupName) ? groupStore.set(groupName, new Map).get(groupName) : groupStore.get(groupName);
         //2. group[name] Map에 index 저장
         const targetMap = !groupMap.has(groupIndex) ? groupMap.set(groupIndex, new Map).get(groupIndex) : groupMap.get(groupIndex);
-        targetMap.set(name, el.current)
+        targetMap.set(name, el.current);
       } 
     }, [el]); 
-
+    
     const clickHander = to && (ev => {
       const {targets} = state;
       if(group){
         const [groupName, groupIndex] = group;
         const targetGroup = groupStore.get(groupName);
-        const target = targetGroup.get(groupIndex);
+        const targetRef = targetGroup.get(groupIndex);
         const result = {}
-        for(let [name, el] of target){
+        for(let [name, el] of targetRef){
           Object.assgin(result, {[name]: {...targets[name], browser: el}})
         }
-        console.log(result);
+        console.log(result); //blogPosts에서 클릭한 타켓의 element들이 콘솔에 찍힌다.
       }
     }
     return React.createElement(tagName, {ref: el, onClick: clickHander, ...props}, children);
   })
 });
 ```
-`blogPosts` 리스트에서 클릭한 타켓의 `element`들이 `result` 값으로 콘솔에 찍힌다.
+-----
+### 7. 클릭 한 포스트 썸네일 애니메이션 적용
+현재까지 블로그 포스트글 중에 클릭 한 포스트의 엘리먼트를 얻어올 수 있다. 이제 얻어온 엘리먼트를 이용해 애니메이션을 적용해본다. 예를들어 포스트 썸네일을 클릭 하여 해당 포스트 상세페이지로 넘어갈 때, 포스트 썸네일이 상세페이지에 있는 썸네일 위치로 이동되는 애니메이션을 적용해본다 하면, 먼저 포스트 썸네일 엘리먼트와, 상세페이지 썸네일 엘리먼트를 얻어와서 각각의 크기와 좌표값을 저장한다.
+```js
+const gotoPostDetail = async(targets) => {
+  const fromEl = targets['post-thumbnail'].browser;
+  const toEl = targets['detail-thumbnail'].memory;
+  const from = fromEl.getBoundingClientRect();
+  const to = toEl.getBoundingClientRect();
+}
+```
+
+
+
+
+
 
 -----
-### 7. 엘리먼트 transfrom animation 구현해보기   
+### 번외. 엘리먼트 transfrom animation 구현해보기   
 [React Morph](https://brunnolou.github.io/react-morph/)
-위 링크에 접속해서 보이는 데모처럼 버튼 클릭 시 애벌레 이미지가 움직이면서 나비 이미지로 변하는 애니매이션을 구현해보자.   
+위 링크에 접속해서 보이는 데모처럼 버튼 클릭 시 애벌레 이미지가 움직이면서 나비 이미지로 변하는 애니매이션을 구현해본다.   
 먼저 jsx로 이미지가 각자 위치에 있을 수 있도록 `style`을 적용하고, 이미지 엘리먼트에게 애니메이션을 줄 수 있도록 `ref`를 생성한다.
 ```js
 const fromImg = useRef(null);
 const toImg = useRef(null);
 return <div>
   <button onClick={startMovingImage}>start</button>
-  <div style={{width: '800px', height: '400px', margin: '0 auto', background: '#f8f8f8'}}>
+  <div style={{position: 'relative', width: '800px', height: '400px', margin: '0 auto', background: '#f8f8f8'}}>
     <img ref={fromImg} src='https://picsum.photos/100/100?1' style={{position: 'absolute', left: 0, top: 0}} />
-    <img ref={toImg} src='https://picsum.photos/100/100?2' style={{position: 'absolute', right: 0, bottom: 0}} />
+    <img ref={toImg} src='https://picsum.photos/200/200?2' style={{position: 'absolute', right: 0, bottom: 0}} />
   </div>
 </div>
 ```
-먼저 애니메이션이 시작되기 전에 이미지 로딩을 먼저 확인 해줘야한다. 로딩 확인을 하지않으면 이미지가 렌더링 되기 전에 `Rect`값을 받아오기 때문에 제대로 나오지 않는다. 또, 2번 이미지는 1번 이미지가 2번째 이미지의 위치로 이동되면서 2번 사진으로 변경되어야 하기 때문에, 처음에 렌더링 될 때 2번 이미지는 보이지 않도록 처리한다. (opacity)   
+먼저 애니메이션이 시작되기 전에 이미지 로딩을 먼저 확인 해줘야한다. 로딩 확인을 하지않으면 이미지가 렌더링 되기 전에 `getBoundingClientRect()`가 실행되어서 좌표나 크기값을 제대로 반환받지 못한다. 또 2번 이미지는 1번 이미지가 2번째 이미지의 위치로 이동되면서 2번 이미지로 변경되어야 하기 때문에, 처음에 렌더링 될 때 2번 이미지는 보이지 않도록 처리한다. (opacity)   
 
 ```js
 useEffect(() => {
@@ -616,9 +636,7 @@ const startMovingImage = async() => {
   await setAnimation(from.current, to.current); //애니메이션 실행 함수
 }
 ```
-
-1번 이미지가 2번 이미지 위치로 이동되기 위해서는 각각 `getBoundingClientRect()` 함수를 이용해서 뷰포트 기준으로 요소 크기와, 위치를 구하고 게산해서 움직일 수 있다.   
-[popmotion](https://popmotion.io/learn/get-started/) 애니메이션 라이브러리를 이용하여 위치를 이동시켜본다.   
+1번 이미지가 2번 이미지 위치로 이동되기 위해서는 각각 `getBoundingClientRect()` 함수를 이용해서 뷰포트 기준으로 요소 크기와, 위치 좌표값을 구하고 게산해서 움직일 수 있다.  [popmotion](https://popmotion.io/learn/get-started/) 애니메이션 라이브러리를 이용하여 애니메이션을 적용한다.   
 애니메이션이 일어나는 상황들을 먼저 정리해본다.
 1. 애니메이션이 시작하면 1번 이미지는 2번 이미지 위치로 이동되면서 서서히 사라진다.
 2. 감춰진 2번 이미지는 1번 이미지와 같은 위치에서 자기 원래 위치로 움직이면서 서서히 나타난다.   
@@ -637,19 +655,26 @@ const setAnimation = async(fromEl, toEl) => {
     right: 'initial',
     bottom: 'initial'
   });
-  //popmotion 라이브러리 
+}
+```
+먼저 보이지 않는 2번 이미지를 1번 이미지가 있는 위치로 옮겨놔야한다. 위치를 옮기기 전에 2번 이미지는 right, bottom (오른쪽 끝)에 위치되어 있기 때문에, 1번 이미지 위치로 이동할려면 기존에 적용했던 포지션 CSS를 해제 해줘야한다.
+```js
+  // 1번 이미지
   tween({
     from: {x: 0, y: 0, width: from.width, height: from.height, opacity: 1},
     to: {x: to.x-from.x, y: to.y-from.y, width: to.width, height: to.height, opacity: 0},
     duration: 1000
   }).start(v => styler(fromEl).set(v));
+  // 2번 이미지
   tween({
     from: {x: 0, y: 0, width: from.width, height: from.height, opacity: 0},
     to: {x: to.x-from.x, y: to.y-from.y, width: to.width, height: to.height, opacity: 1},
     duration: 1000
   }).start(v => styler(toEl).set(v));
-}
 ```
+1번 이미지는 2번 이미지가 위치되어있는 곳으로 가야하는데, 2번 이미지가 1번 이미지가 있는 위치로 이동 되기전에, `getBoundingClientRect()`함수로 2번 이미지의 크기와 위치 좌표값을 변수`to`에 저장했다.   
+1번 이미지의 `rect.x`에서 2번 이미지`rect.x`을 빼면 1번 이미지가 얼마만큼 이동되어야 2번 이미지가 있는 위치로 갈 수 있는지 구할 수 있다. (2번 이미지도 만찬가지)   
+각각 `x, y` 값을 구해서 옮기고, 투명도도 적용한다.
 
 -----
 ### `참고. React rendering 리액트 렌더링 이해와 최적화 (함수형 컴포넌트)`
