@@ -84,36 +84,40 @@ BrowserRouterComp 컴포넌트를 만든 이유는 브라우저라우터 페이�
 
 ### `2. Context API (createContext)` 
 페이지 이동 링크를 걸기 위해 `react-router-dom`의 `<Link />` 컴포넌트를 사용해야 하지만,
-`Link` 사용 시 링크 페이지로 바로 넘어가기 때문에 애니메이션이 끊기고, 애니메이션이 들어갈 페이지의 컴포넌트에 브라우저 라우터 히스토리와, 메모리 라우터 히스토리를 `props`로 받아 핸들링 해야하는데, 페이지 컴포넌트가 많아질 수 록 반복적인 코드 작성을 해야한다. 
+`Link` 사용 시 연결 페이지로 바로 넘어가기 때문에 애니메이션이 끊기고, 애니메이션이 들어갈 페이지의 컴포넌트에 브라우저 라우터 히스토리와, 메모리 라우터 히스토리를 `props`로 받아 핸들링 해야하는데, 페이지 컴포넌트가 많아질수록 반복적인 코드 작성을 해야한다. 
 
-`Context API`를 사용하여 전역 데이터 상태를 생성하여 여러 컴포넌트를 거쳐 데이터를 전달하지 않고,
-`Context`를 통해서 바로 원하는 데이터 값을 줄 수 있다.
-전역으로 사용해야 할 데이터는 `1. 브라우저 라우터 히스토리, 2. 메모리 라우터 히스토리, 3. 브라우저 페이지 엘리먼트, 4. 메모리 페이지 엘리먼트`로 정리할 수 있다. `엘리먼트`는 나중에 정리하고 `history`부터 전역 상태로 관리해보자.
+`Context API`를 사용하여 전역 데이터 상태를 생성하여 여러 컴포넌트를 거쳐 데이터를 전달하지 않고, `Context value`를 통해서 바로 원하는 데이터 값을 줄 수 있다.   
+전역으로 사용해야 할 데이터는 페이지 이동을 조작할 수 있는 `브라우저 라우터 히스토리, 메모리 라우터 히스토리`와 애니매이션을 적용할 대상 엘리먼트을 구하기 위한 `브라우저 페이지 엘리먼트, 메모리 페이지 엘리먼트`로 정리할 수 있다.
 
 ```jsx
-const sleep = ms => new Promise(res => setTimeout(res, ms));
-const initalValue = { //라우터 히스토리 정보와, 애니메이션 대상자 엘리먼트 상태 초기값 설정 
-  history: {
-    browser: null,
-    memory: null;
-  },
-  targets: {}
-}
+const sleep = ms => new Promise(res => setTimeout(res, ms)); //유틸함수
 const TransitionContext = createContext(); // Context API 생성
 const {Provider, Consumer} = TransitionContext;
 export const TransitionProvider = ({...props}) => {
-  const [state, setState] = useState(initalValue);
+  const [state, setState] = useState({
+    history: {
+    browser: null,
+    memory: null;
+  },
+    targets: {}
+  });
   return <Provider {...props} value={{
     state, 
-    setState: obj => setState(state => Object.assign(state, obj))
+    setState: obj => setState(state => Object.assign(state, obj));
   }} />
 }
 ```
+!!!!!!!
+```
+Provier value setState 함수를 보면 저장할 오브젝트 데이터를 state에 저장 할 때
+
+```
+
 `Context`의 `history, memoryHistory`의 상태값을 저장하기 위해 메모리 라우터과, 브라우저 라우터 히스토리를 모두 받아오는 `HistoryObserver` 컴포넌트에서 상태값을 저장해준다.
 ```jsx
 const HistoryObserver = ({memoryHistory, children}) => {
   const context = useContext(TransitionContext); // Context.Provider value를 객체로 반환
-  const history = useHistory();
+  const history = useHistory(); //브라우저 히스토리
   useEffect(() => {
     context.setState({history: {
       browser: history,
@@ -124,12 +128,8 @@ const HistoryObserver = ({memoryHistory, children}) => {
 }
 ```
 
-`Context API`로 만든 `Provider` 최상위 컴포넌트가 전역 상태를 관리하고, `react-router-dom <Link />`를 대신해서
-context 상태값을 사용할 수 있는 또 다른 `Link` 컴포넌트를 만든다. 
+`Context API`로 만든 `Provider` 최상위 컴포넌트가 전역 상태를 관리하고, `react-router-dom <Link />`를 대신해서 `context.history`상태값을 사용하여 라우터가 이동되도록 또 다른 `Link` 컴포넌트를 만든다.
 
-링크를 연결해 줄 페이지 컴포넌트에서 `<Link to="post">Go to Post Page</Link>`를 사용하면 
-메모리 라우터 `Post` 페이지가 렌더링 된 후 2초 뒤에 (sleep 함수) 브라우저 라우터 `history.push()`가 작동하면서
-주소가 해당 링크로 이동되어 브라우저 라우터 `Post` 페이지가 렌더링된다.
 ```jsx
 export const Link = ({to, children, ...props}) => {
   return <Consumer>
@@ -144,7 +144,6 @@ export const Link = ({to, children, ...props}) => {
     }}
   </Consumer>
 }
-
 // App 컴포넌트 수정
 const App = () => {
   return <PageTransitionProvider>
@@ -155,10 +154,11 @@ const App = () => {
   </PageTransitionProvider>
 }
 ```
------
+링크를 연결해 줄 페이지 컴포넌트에서 방금 만든 `Link`컴포넌트를 불러와서 `<Link to="post">Go to Post Page</Link>`를 사용하면 메모리 라우터 `Post` 페이지가 렌더링 된 후 2초 뒤에 (sleep 함수) 브라우저 라우터 `history.push()`가 작동하면서 주소가 해당 링크로 이동되어 브라우저 라우터 `Post` 페이지가 렌더링된다.
 
+-----
 ### `3. components Ref 엘리먼트 얻어오기`
-애니메이션을 주기 위해선 대상자의 `element(Ref)`를 알아야 애니메이션 `css`등 을 적용 할 수 있다. 대상자를 감싸는 wrapper jsx`<div>` 컴포넌트를 만들어서 `ref`를 얻을 수 있는 방법이 있다.
+애니메이션을 주기 위해선 대상자의 `element(Ref)`를 알아야 애니메이션 `css`등을 적용 할 수 있다. 대상자를 감싸는 wrapper jsx`<div>` 컴포넌트를 만들어서 `ref`를 얻을 수 있는 방법이 있다.
 ```jsx
 const Ref = ({main, children}) => {
   const comp = useRef();
@@ -178,20 +178,18 @@ const Main = () => {
 ```jsx
 const btnStyled = styled.button`color: red;`
 ```
-위 코드 처럼 `.button`으로 `button` 엘리먼트를 반환해주고, 다른 html태그를 사용해도 사용한 태그를 반환해준다. `Ref` 컴포넌트는 `div`태그로만 사용할 수 밖에 없고, 안에 자식컴포넌트나 jsx를 사용할 때 `<Ref>` 보단 사용한 태그 이름의 컴포넌트로 보여주는 것이 좋다. 
-`section` 태그로 감쌀 땐 `<Section>`, `main`태그는 `<Main>`으로 등등 ..
+위 코드 처럼 `.button`으로 `button` 엘리먼트를 반환해주고, 다른 html태그를 사용한 태그를 반환해준다. 위에 만든 `Ref`컴포넌트는 `div`태그로만 사용할 수 밖에 없고, 안에 자식 컴포넌트나 jsx를 사용할 때 `<Ref>`보단 사용한 태그 이름의 컴포넌트로 보여주는 것이 좋다.
+`section`태그는 `<Section>`컴포넌트로 만들고, `main`태그는 `<Main>`으로 등등 ..
 
-javascript [new Proxy()](https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
-를 사용하여, 대상 객체의 `key`를 태그이름으로 사용하여 `jsx`가 아닌 `React.createElement()`를 반환하여 `jsx`를 그려준다.
+javascript [new Proxy()](https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Proxy) 를 사용하여, 대상 객체의 `key`를 태그이름으로 사용하여 `jsx`가 아닌 `React.createElement()`를 반환하여 `jsx`를 그려준다.
 
 [React.createElement() 내용참고](https://medium.com/react-native-seoul/react-%EB%A6%AC%EC%95%A1%ED%8A%B8%EB%A5%BC-%EC%B2%98%EC%9D%8C%EB%B6%80%ED%84%B0-%EB%B0%B0%EC%9B%8C%EB%B3%B4%EC%9E%90-02-react-createelement%EC%99%80-react-component-%EA%B7%B8%EB%A6%AC%EA%B3%A0-reactdom-render%EC%9D%98-%EB%8F%99%EC%9E%91-%EC%9B%90%EB%A6%AC-41bf8c6d3764)
 ```
-각 JSX 엘리먼트는 단지 React.createElement()를 호출하는 편리한 문법에 불과하다.
-즉, JSX 문법은 React.createElement() 를 호출하기 위한 하나의 방법일 뿐이고 
-Babel(Javascript 트랜스파일러)을 통해 파싱되고 트랜스 파일링된다.
+<div></div>처럼 각 JSX 엘리먼트는 단지 React.createElement()를 호출하는 편리한 문법에 불과하다.
+즉, JSX 문법은 React.createElement() 를 호출하기 위한 하나의 방법일 뿐이고 Babel(Javascript 트랜스파일러)을 통해 파싱되고 트랜스 파일링된다.
 ```
 
-먼저 `React.createElement()` 를 반환하는 함수를 만든다.
+먼저 `React.createElement()`를 반환하는 함수를 만든다.
 ```js
 const RefCompFactory = tagName => {
   return ({name, children, ...props}) => {
@@ -200,17 +198,8 @@ const RefCompFactory = tagName => {
   }
 }
 ```
-
-`RefCompFactory(section)`를 호출하면 `section` jsx를 그려주는 `React.createElement` 함수가 반환된다.
-```js
-// 반환 함수
-({name, children, ...props}) => {
-  const el = useRef();
-  return React.createElement(tagName, {ref: el.current, ...props}, children)
-}
-```
-
-함수도 객체이므로 `Proxy` target으로 `property` 값이 설정 될 때 `RefCompFactory` 함수를 반환하여 `jsx` 엘리먼트가 생성된다.
+`RefCompFactory(section)`를 호출하면 `section` jsx를 그려주는 `React.createElement()` 함수가 반환된다.   
+props `name`은 해당 엘리먼트를 저장할 때 사용하는 key값이다. (애니메이션을 적용할 엘리먼트를 name값으로 지정할 수도 있다)
 
 ```js
 const RefComp = RefCompFactory(section);
@@ -218,6 +207,7 @@ const Ref = new Proxy(RefComp, {
   get: (target, property) => RefCompFactory(property)
 });
 ```
+함수도 객체이므로 `Proxy` target으로 `property`값이 설정 될 때 `RefCompFactory`함수를 반환하여 `jsx` 엘리먼트가 생성된다.
 
 ```
 <Ref.div />, <Ref.span /> 등 
@@ -225,7 +215,7 @@ Proxy의 property가 RefCompFactory 함수 인수값으로 들어가서 React.cr
 ```
 
 좀 더 나아가서 컴포넌트마다 `<Ref.div>`을 여러번 사용하면 `React.createElement`을 반환하는 함수가 다 다른 메모리에 저장되서 사용되기 때문에
-자바스크립트의 메모라이제이션 Memorization (로컬 캐시) 기술을 통해 메모리에 특정 정보를 저장 기록하여 필요할 때마다 정보를 가져와 활용하는 방법으로 많은 메모리는 낭비하지 않고 필요한 부분만 사용하여 성능적인 부분을 개선할 수 있다.
+자바스크립트의 메모라이제이션 Memorization(로컬 캐시) 기술을 통해 메모리에 특정 정보를 저장 기록하여 필요할 때마다 정보를 가져와 활용하는 방법으로 많은 메모리는 낭비하지 않고 필요한 부분만 사용하여 성능적인 부분을 개선할 수 있다.
 [메모라이제이션에 대해서](https://webisfree.com/2018-05-15/%EC%9E%90%EB%B0%94%EC%8A%A4%ED%81%AC%EB%A6%BD%ED%8A%B8-%EB%A9%94%EB%AA%A8%EB%9D%BC%EC%9D%B4%EC%A0%9C%EC%9D%B4%EC%85%98(memorization)-%EC%98%88%EC%A0%9C%EB%B3%B4%EA%B8%B0)
 
 ```jsx
@@ -235,7 +225,7 @@ const pCached = f => {
   return arg => store.has(arg) ? store.get(arg) : store.set(arg, f(arg)).get(arg);
 }
 ```
-`store` 배열에 함수 파라미터로 들어온 `key`가 있으면 해당 `key`의 함수를 실행하고, 없으면 `store`에 정보를 추가해준다.
+`store`배열에 함수 파라미터로 들어온 `key`가 있으면 해당`key`의 함수를 실행하고, 없으면 `store`에 정보를 추가해준다.   
 
 ```jsx
 const RefCompFactory = pCached(tagName => {
@@ -245,9 +235,9 @@ const RefCompFactory = pCached(tagName => {
   }
 });
 ```
-`React.createElement` 함수를 `pCached` 인수값으로 넣어 `Ref`를 이용하여 동일한 jsx를 만들 때 불필요한 리소스를 줄일 수 있다.
+`React.createElement` 함수를 `pCached`인수값(파라미터)로 넣고 `Ref`를 이용하여 동일한 jsx를 만들 때 불필요한 리소스를 줄일 수 있다.   
 
-이제 `React.createElement`의 ref을 `TransitionContext`의 메모리 라우터의 ref, 브라우저 라우터의 ref를 각각 저장한다.
+이제 `RefCompFactory`로 만들어진 jsx엘리먼트를 `TransitionContext`의 메모리라우터의 ref, 브라우저라우터의 ref를 각각 저장한다.
 ```
 * state.targets 의 구조
 targets: {
@@ -270,7 +260,7 @@ const RefCompFactory = pCached(tagName => {
     const el = useRef();
     useEffect(() => {
       if(!el) return;
-      const {targets} = state; //이미 저장되어 있는 ref 엘리먼트
+      const {targets} = state; //이미 저장되어 있는 targets
       if(history === broswer){
         setState({targets: { ...targets, [name]: { ...targets[name], broswer: el.current } }})
       }else if(history === memory){
@@ -281,9 +271,7 @@ const RefCompFactory = pCached(tagName => {
   }
 });
 ```
-`context`의 `state.targets` 값을 보면 페이지가 처음 렌더링 될 때 `ref 엘리먼트`는 `undefined`로 들어오게 되는데, 그 이유는 렌더링이 될 떄 자식 컴포넌트가 먼저 그려지고 난 다음 부모 컴포넌트가 그려지게 되는데, 자식컴포넌트에서는 부모의 history를 넘겨받고 있는데 부모가 그려지기 전이라 자식 컴포넌트에서는 히스토리가 `undefined`로 나오는 것이다.
-
-그래서 부모와 자식간의 렌더링 시간차를 두어서 부모의 히스토리를 받아올 수 도록 한다.
+`context`의 `state.targets`값을 보면 페이지가 처음 렌더링 될 때 `ref 엘리먼트`는 `undefined`로 들어오게 되는데, 그 이유는 **렌더링이 될 때 자식 컴포넌트가 먼저 그려지고 난 다음 부모 컴포넌트가 그려지게 되는데**, 자식 컴포넌트에서는 부모의 history를 넘겨받고 있는데 부모가 그려지기 전이라 자식 컴포넌트에서는 히스토리가 `undefined`로 나오는 것이다. 그래서 부모와 자식간의 렌더링 시간차를 두어서 부모의 히스토리를 받아올 수 도록 한다.
 ```jsx
 const BrowserRouterComp = ({children}) => {
   const history = useHistory();
@@ -312,20 +300,23 @@ const App = () => {
 -----
 
 ### 4. transition
-브라우저 라우터와 메모리 라우터의 `component ref`를 각각 저장했다.
-메모리 라우터는 보여질 필요가 없으니 숨김 처리하고, 메모리 라우터에서 전환 될 컴포넌트 ref 엘리먼트를 `body`에 추가하여 현재 페이지와, 다음 페이지에 트렌지션 애니메이션을 동시에 준다.
+브라우저 라우터와 메모리 라우터에서 `RefCompFactory`로 렌더링 한 엘리먼트를 저장했다.   
+메모리 라우터는 보여질 필요가 없으니 숨김 처리하고, 전환 될 페이지의 엘리먼트를(메모리라우터) `body`에 추가하여 현재 페이지와, 다음 페이지에 트렌지션 애니메이션을 동시에 준다.
 
 먼저 메모리 라우터를 숨김처리 하기 위해 `Hidden` 컴포넌트를 만들어서 메모리 라우터를 감싼다.
 ```js
 const Hidden = ({children}) => {
   return <div style={{
-    width: 0;
-    height: 0;
-    position: 'absoulte';
-    top: 0;
-    left: 0;
-    zIndex: -1;
-    overflow: 'hidden'
+    width: 100%,
+    height: 100%,
+    position: 'absoulte',
+    top: 0,
+    left: 0,
+    zIndex: -1,
+    overflow: 'hidden',
+    visibility: 'hidden',
+    opacity: 0.0001 // opacity: 0으로 하면 익스플로러에서 깜빡이는 버그?가 있어서 소수점 0.0001로..
+
   }}>{children}</div>
 }
 
@@ -340,7 +331,7 @@ const App = () => {
 }
 ```
 
-그 다음, 다음 페이지의 `component ref` (메모리 라우터에 있는)을 가져와서 링크가 넘어가기 전 현재 페이지와 겹치면서 애니메이션이 동시에 작동 할 수 있도록, `body`에 고정된 엘리먼트 `wrapper`을 만들어 자식으로 `append`하고, 에니메이션이 끝나면 `remove` 되는 컴포넌트를 만든다.
+그 다음, 다음 페이지의 `ref`(메모리 라우터)을 링크가 넘어가기 전 현재 페이지와 겹치면서 애니메이션이 동시에 작동 할 수 있도록, `body`에 고정된 엘리먼트 `wrapper`을 만들어서 자식으로 `append`하고, 에니메이션이 끝나면 `remove`되는 컴포넌트를 만든다.
 ```js
 //즉시 함수호출
 const fixed = (() => {
@@ -365,18 +356,15 @@ const fixed = (() => {
 })(); 
 ```
 
-현재 페이지와, 다음 페이지의 `ref`를 메모리 라우터에서 얻어와 `fixed` 함수를 사용하여 트렌지션 애니메이션이
-`링크 클릭 시` 작동해야하므로 `Link` 컴포넌트에서 `onClick` 함수에 애니메이션 로직을 추가해야한다.  
-애니메이션 효과가 여러가지 일 수도 있고, 애니메이션이 걸리는 대상자 ref 엘리먼트도 다 다를 수 있기 때문에 `onCick` 함수에 풀어쓰는것 보단 애니메이션이 작동할 때 필요한 데이터를 매개변수로 받아 함수를 호출하는 것이 편리하다.   
-또한, `Link` 컴포넌트가 `context`의 상태값을 공유 받아 처리하고 있다.
+현재 페이지와, 다음 페이지의 `ref`를 메모리 라우터에서 얻어와 `fixed`함수를 사용하여 트렌지션 애니메이션이 `링크 클릭 시` 작동해야 하므로 `Link`컴포넌트에서 `onClick` 함수에 애니메이션 로직을 추가해야한다.  
+애니메이션 효과가 여러가지 일 수도 있고, 애니메이션이 걸리는 대상자 엘리먼트도 다 다를 수 있기 때문에 `onCick`함수에 풀어쓰는것 보단 애니메이션이 작동할 때 필요한 데이터를 매개변수로 받아 함수를 호출하는 것이 편리하다. 
 
-현재 `Main` 컴포넌트와 `Post` 컴포넌트의 `wrapper 엘리먼트`를 얻어올 수 있으니 두 페이지가 서로 전환 될 때 페이드 애니메이션을 적용해본다.  
+`Link`컴포넌트가 `context`의 상태값을 공유 받아 처리하고 있다. 현재 `Main`컴포넌트와 `Post`컴포넌트의 애니메이션을 적용할 (`RefCompFactory`로 만들어진)엘리먼트를 얻어올 수 있으니 두 페이지가 서로 전환 될 때 페이드 애니메이션을 적용해본다.  
 
 ```jsx
 let lock = false;
 /*
-전역변수 lock 은 `Link`의 onClick 함수가 짧은 시간동안 
-반복적으로 여러번 클릭 시에도 함수가 한 번 실행되도록 블로킹 처리를 해준다.
+전역변수 lock 은 `Link`의 onClick 함수가 짧은 시간동안 반복적으로 여러번 클릭 시에도 함수가 한 번 실행되도록 블로킹 처리를 해준다.
 */
 const Link = ({to, children, className}) => {
   return <Consumer>{({state}) => {
