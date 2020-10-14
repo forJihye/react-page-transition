@@ -1,4 +1,4 @@
-### `Route transition animation`
+### Route transition animation
 ```
 1. 링크 클릭 시 바로 라우터가 넘어가면 안되고 멈춘 상태에서 전환 라우터가 현재 라우터 같은 위치에 보이지 않게 렌더링 하고, 
 2. 두 라우터의 wrapper element를 찾은 후 현재 라우터 element에는 out-animation 작동하고 
@@ -7,7 +7,7 @@
 ```
 -----
 
-### `1. memoryRouter, BrowserRouter`
+### 1. memoryRouter, BrowserRouter
 현재 페이지와, 다음 페이지가 이어지는 트랜지션 애니메이션을 주기 위해선, 같은 페이지에 위치해야 자연스러운 애니메이션이 작동한다. 
 
 `react-router-dom`의 메모리 라우터(`MemoryRouter`)의 `history`를 이용하여 다음되는 페이지를 `push()`하여 메모리 라우터에는 다음 페이지가 렌더링 되고, 브라우저 라우터(`BrowserRouter`)는 현재 페이지로 유지하며 동시에 in, out 애니메이션이 작동되어야, 애니메이션이 끝나고 브라우저 라우터에서 다음 페이지로 넘어갈 때 끊기지 않고 자연스럽게 넘어갈 수 있다.
@@ -82,7 +82,7 @@ BrowserRouterComp 컴포넌트를 만든 이유는 브라우저라우터 페이�
 
 -----
 
-### `2. Context API (createContext)` 
+### 2. Context API (createContext)
 페이지 이동 링크를 걸기 위해 `react-router-dom`의 `<Link />` 컴포넌트를 사용해야 하지만,
 `Link` 사용 시 연결 페이지로 바로 넘어가기 때문에 애니메이션이 끊기고, 애니메이션이 들어갈 페이지의 컴포넌트에 브라우저 라우터 히스토리와, 메모리 라우터 히스토리를 `props`로 받아 핸들링 해야하는데, 페이지 컴포넌트가 많아질수록 반복적인 코드 작성을 해야한다. 
 
@@ -157,7 +157,7 @@ const App = () => {
 링크를 연결해 줄 페이지 컴포넌트에서 방금 만든 `Link`컴포넌트를 불러와서 `<Link to="post">Go to Post Page</Link>`를 사용하면 메모리 라우터 `Post` 페이지가 렌더링 된 후 2초 뒤에 (sleep 함수) 브라우저 라우터 `history.push()`가 작동하면서 주소가 해당 링크로 이동되어 브라우저 라우터 `Post` 페이지가 렌더링된다.
 
 -----
-### `3. components Ref 엘리먼트 얻어오기`
+### 3. components Ref 엘리먼트 얻어오기
 애니메이션을 주기 위해선 대상자의 `element(Ref)`를 알아야 애니메이션 `css`등을 적용 할 수 있다. 대상자를 감싸는 wrapper jsx`<div>` 컴포넌트를 만들어서 `ref`를 얻을 수 있는 방법이 있다.
 ```jsx
 const Ref = ({main, children}) => {
@@ -430,7 +430,7 @@ const Pages = () => <>
 
 -----
 
-### `5. image, video loading check`
+### 5. image, video loading check
 렌더링 될 때 로딩 시간이 걸리는 이미지, 비디오 등 엘리먼트가 다음 페이지 내애 있다고 가정하면 페이지가 전환될 때 페이드 애니메이션은 작동하겠지만 애니메이션과 별개로 이미지나 비디오는 로딩이 끝난 후 렌더링 되기 때문에 뚝 끊기는 현상이 나타날 것이다.
 
 이러한 현상을 보완하기 위해 이미지와 비디오 등 로딩이 필요한 엘리먼트가 로딩이 되었을 때 다음 페이지로 전환해주면 이미 로딩이 끝났기 때문에 렌더링만 해주면 로딩시간이 필요가 없어 뚝 끊기는 현상이 없어진다.   
@@ -593,7 +593,7 @@ const RefCompFactory = pCached(tagName => {
 ```
 -----
 ### 7. 클릭 한 포스트 썸네일 애니메이션 적용
-현재까지 블로그 포스트글 중에 클릭 한 포스트의 엘리먼트를 얻어올 수 있다. 이제 얻어온 엘리먼트를 이용해 애니메이션을 적용해본다. 예를들어 포스트 썸네일을 클릭 하여 해당 포스트 상세페이지로 넘어갈 때, 포스트 썸네일이 상세페이지에 있는 썸네일 위치로 이동되는 애니메이션을 적용해본다 하면, 먼저 포스트 썸네일 엘리먼트와, 상세페이지 썸네일 엘리먼트를 얻어와서 각각의 크기와 좌표값을 저장한다.
+현재까지 블로그 포스트글 중에 클릭 한 포스트의 엘리먼트를 얻어올 수 있다. 이제 얻어온 엘리먼트를 이용해 애니메이션을 적용해본다. 
 ```js
 const gotoPostDetail = async(targets) => {
   const fromEl = targets['post-thumbnail'].browser;
@@ -602,9 +602,44 @@ const gotoPostDetail = async(targets) => {
   const to = toEl.getBoundingClientRect();
 }
 ```
+예를들어 포스트 썸네일을 클릭 하여 해당 포스트 상세 페이지로 넘어갈 때, 포스트 썸네일이 상세 페이지에 있는 썸네일 위치로 이동되는 애니메이션을 적용해본다 하면, 먼저 포스트 썸네일 엘리먼트와, 상세 페이지 썸네일 엘리먼트를 얻어와서 각각의 크기와 좌표값을 변수에 저장한다.
+
+```js
+tween({
+  from: {x: 0, y: 0, width: from.width, height: from.height},
+  to: {x: to.x-from.x, y: to.y-from.y, width: to.width, height: to.height},
+  duration: 1000
+}).start(v => styler(fromEl).set(v));
+```
+포스트 썸네일을 상세 썸네일의 크기과 위치되어있는 곳으로 이동되는 애니메이션을 먼저 적용해보면, 클릭 한 썸네일이 자기 위치에서 크기가 변형되면서 위치가 이동되는데, 애니메이션은 잘 작동하지만 썸네일 크기가 변형될 때 부모 엘리먼트 크기도 같이 커지면서 다른 포스트들의 위치가 밀려나는 것처럼 보이고 부모 엘리먼트도 서서히 사라지는 opacity 효과를 적용할 때 해당 썸네일 이미지도 부모의 opacity 스타일이 상속되면서 같이 사라지게 된다.
+
+이러한 상황들을 막고자 네이티브 `fixed`함수로 고정된 엘리먼트에 해당 썸네일을 `append`하여 단독 애니메이션을 적용하고 포스트 부모 엘리먼트에 애니메이션이 적용되어도 해당 썸네일의 부모는 `fixed`가 만든 엘리먼트가 되기 때문에 서로 애니메이션을 적용하여도 영향을 끼치지 않는다.
+```js
+const gotoPostDetail = async(targets) => {
+  const fromEl = targets['post-thumbnail'].browser;
+  const toEl = targets['detail-thumbnail'].memory;
+  const from = fromEl.getBoundingClientRect();
+  const to = toEl.getBoundingClientRect();
+  //fixed로 append 하기 전에 현재 from의 크기와 위치 스타일을 적용한다.
+  Object.assign(fromEl.style, {
+    width: from.width+'px',
+    height: from.height+'px',
+    position: 'absolute',
+    left: from.x+'px',
+    top: from.y+'px'
+  });
+  fixed.append(fromEl);
+  fixed.show();
+  // tween 애니메이션 적용
+}
+```
 
 
 
+
+
+
+위 코드에서 `targets['detail-thumbnail'].memory`는 메모리라우터에서 상세 페이지가 렌더링 되어야 엘리먼트가 저장될 수 있기 때문에, `gotoPostDetail`함수를 수행할 때, 메모리라우터에서 해당 상세페이지 경로로 먼저 이동되어야 한다.
 
 
 
@@ -677,7 +712,7 @@ const setAnimation = async(fromEl, toEl) => {
 각각 `x, y` 값을 구해서 옮기고, 투명도도 적용한다.
 
 -----
-### `참고. React rendering 리액트 렌더링 이해와 최적화 (함수형 컴포넌트)`
+### 참고. React rendering 리액트 렌더링 이해와 최적화 (함수형 컴포넌트)
 [내용참고](https://medium.com/vingle-tech-blog/react-%EB%A0%8C%EB%8D%94%EB%A7%81-%EC%9D%B4%ED%95%B4%ED%95%98%EA%B8%B0-f255d6569849)   
 리액트에서 `jsx`(return 부분)을 렌더링을 실행하는 조건은
 1. **props**가 변경되었을 때
