@@ -630,19 +630,60 @@ const gotoPostDetail = async(targets) => {
   });
   fixed.append(fromEl);
   fixed.show();
-  // tween 애니메이션 적용
+}
+```
+포스트 썸네일을 `fixed`에 자식으로 `append`하여 애니메이션을 적용하였고, 애니메이션이 끝나면 `fixed`에 추가했던 엘리먼트를 삭제해줘야하고, 브라우저라우터에서 상세페이지로 넘어가야 하기 때문에 `gotoPostDetail`함수가 비동기 함수을 리턴하여 수행이 완료되면 브라우저 라우터가 이동되게끔 해야한다.
+```js
+return new Promise(res => {
+  tween({
+    from: {x: 0, y: 0, width: from.width, height: from.height},
+    to: {x: to.x-from.x, y: to.y-from.y, width: to.width, height: to.height},
+    duration: 1000
+  }).start({
+    update: v => styler(fromEl).set(v),
+    complete: () => {
+      fixed.remove(fromEl);
+      fixed.hide();
+      res();
+    }
+  });
+})
+```
+라이브러리 `tween`에서 애니메이션이 종료 콜백함수를 이용하여 종료가 되면 비동기 함수를 완료시키고, `fixed`로 옮겨졌던 엘리먼트도 삭제해주고, `gotoPostDetail` 함수를 `RefCompFactory`컴포넌트 클릭이벤트 함수 스코프안에 적용해준다. 
+**애니매이션 과정**
+```
+1. 클릭 한 해당 포스트 엘리먼트를 저장한다.
+2. 메모리라우터에서 경로(to)로 이동되어 렌더링 한다.
+3. 메모리라우터 페이지에 이미지와 비디오 로딩상태를 체크한다.
+4. 애니메이션을 적용시킬 from, to 엘리먼트를 확인할 수 있다.
+5. 애니메이션 함수 gotoPostDetail을 수행하여 애니메이션이 작동한다. 
+6. 애니메이션이 종료되면 브라우저라우터에서 경로(to)로 이동되어 렌더링 된다.
+```
+```js
+// RefCompFactory onClick 함수
+const clickHander = to && (ev => {
+  const {targets} = state;
+  if(group){
+    const [groupName, groupIndex] = group;
+    const targetGroup = groupStore.get(groupName);
+    const targetRef = targetGroup.get(groupIndex);
+    const result = {}
+    for(let [name, el] of targetRef){
+      Object.assgin(result, {[name]: {...targets[name], browser: el}})
+    }
+    // start
+    memory.push(to);
+    await sleep(0);
+    await Promise.all([...state.preload].map(el => checkPreload(el)));
+    await gotoPostDetail(state.targets);
+    browser.push(to);
+  }
 }
 ```
 
 
 
-
-
-
-위 코드에서 `targets['detail-thumbnail'].memory`는 메모리라우터에서 상세 페이지가 렌더링 되어야 엘리먼트가 저장될 수 있기 때문에, `gotoPostDetail`함수를 수행할 때, 메모리라우터에서 해당 상세페이지 경로로 먼저 이동되어야 한다.
-
-
-
+위 코드에서 `targets['detail-thumbnail'].memory`는 메모리라우터에서 상세 페이지가 렌더링 되어야 엘리먼트가 저장될 수 있기 때문에, `gotoPostDetail`함수를 수행할 때, 메모리라우터에서 해당 상세페이지 경로로 먼저 이동되어야 한다.   
 -----
 ### 번외. 엘리먼트 transfrom animation 구현해보기   
 [React Morph](https://brunnolou.github.io/react-morph/)
