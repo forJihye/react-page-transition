@@ -680,11 +680,48 @@ const clickHander = to && (ev => {
   }
 }
 ```
+포스트를 클릭하면 애니메이션과 페이지 이동은 잘 작동하지만, 클릭한 포스트가 `fixed`에 `append`되면 원래 있던 자리에서 옮겨지기 때문에 기존에 있던 자리에 엘리먼트가 없어지면서 크기가 같이 줄어든다. 포스트 리스트의 크기 변형을 막기위해서는 `append`되는 엘리먼트 자리에 동일한 크기와 위치를 적용하여 새 엘리먼트를 추가해준다.
+```js
+const gotoPostDetail = async(targets) => {
+  const fromEl = targets['post-thumbnail'].browser;
+  const toEl = targets['detail-thumbnail'].memory;
+  const from = fromEl.getBoundingClientRect();
+  const to = toEl.getBoundingClientRect();
 
+  //코드 추가
+  const placeholder = Object.assign(document.createElement('div'), {style:`
+    width: ${from.width}px; height: ${from.height}px; background: transparent;
+  `});
+  fromEl.parentNode.replaceChild(placeholder, fromEl);
 
+  Object.assign(fromEl.style, {
+    width: from.width+'px',
+    height: from.height+'px',
+    position: 'absolute',
+    left: from.x+'px',
+    top: from.y+'px'
+  });
+  fixed.append(fromEl);
+  fixed.show();
+  return new Promise(res => {
+    tween({
+      from: {x: 0, y: 0, width: from.width, height: from.height},
+      to: {x: to.x-from.x, y: to.y-from.y, width: to.width, height: to.height},
+      duration: 1000
+    }).start({
+      update: v => styler(fromEl).set(v),
+      complete: () => {
+        fixed.remove(fromEl);
+        fixed.hide();
+        res();
+      }
+    });
+  });
+}
+```
 
-위 코드에서 `targets['detail-thumbnail'].memory`는 메모리라우터에서 상세 페이지가 렌더링 되어야 엘리먼트가 저장될 수 있기 때문에, `gotoPostDetail`함수를 수행할 때, 메모리라우터에서 해당 상세페이지 경로로 먼저 이동되어야 한다.   
 -----
+
 ### 번외. 엘리먼트 transfrom animation 구현해보기   
 [React Morph](https://brunnolou.github.io/react-morph/)
 위 링크에 접속해서 보이는 데모처럼 버튼 클릭 시 애벌레 이미지가 움직이면서 나비 이미지로 변하는 애니매이션을 구현해본다.   
