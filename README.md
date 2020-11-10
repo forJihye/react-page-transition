@@ -1,10 +1,9 @@
 ### Route transition animation
-```
-1. 링크 클릭 시 바로 라우터가 넘어가면 안되고 멈춘 상태에서 전환 라우터가 현재 라우터 같은 위치에 보이지 않게 렌더링 하고, 
-2. 두 라우터의 wrapper element를 찾은 후 현재 라우터 element에는 out-animation 작동하고 
-3. 현재 라우터의 out-animation이 끝나기 전에 전환 페이지에 in-animation 작동한 다음
-4. out-animation과 in-animation 끝나면 전환 라우터 링크로 이동
-```
+> 1. 링크 클릭 시 바로 라우터가 넘어가면 안되고 멈춘 상태에서 전환 라우터가 현재 라우터 같은 위치에 보이지 않게 렌더링 하고, 
+> 2. 두 라우터의 wrapper element를 찾은 후 현재 라우터 element에는 out-animation 작동하고 
+> 3. 현재 라우터의 out-animation이 끝나기 전에 전환 페이지에 in-animation 작동한 다음 
+> 4. out-animation과 in-animation 끝나면 전환 라우터 링크로 이동
+
 -----
 
 ### 1. memoryRouter, BrowserRouter
