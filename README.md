@@ -106,11 +106,6 @@ export const TransitionProvider = ({...props}) => {
   }} />
 }
 ```
-!!!!!!!
-```
-Provier value setState 함수를 보면 저장할 오브젝트 데이터를 state에 저장 할 때
-
-```
 
 `Context`의 `history, memoryHistory`의 상태값을 저장하기 위해 메모리 라우터과, 브라우저 라우터 히스토리를 모두 받아오는 `HistoryObserver` 컴포넌트에서 상태값을 저장해준다.
 ```jsx
